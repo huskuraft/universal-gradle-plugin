@@ -1,0 +1,60 @@
+apply plugin: 'groovy'
+apply plugin: 'idea'
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+apply plugin: 'java-gradle-plugin'
+
+group = 'dev.huskuraft.universal'
+version = plugin_version
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+gradlePlugin {
+    plugins {
+        create("universal") {
+            id = 'dev.huskuraft.universal'
+            description = project.description
+            displayName = 'Universal'
+            version = project.version
+            implementationClass = "dev.huskuraft.gradle.plugins.universal.UniversalPlugin"
+        }
+        create("universal-library") {
+            id = 'dev.huskuraft.universal-library'
+            description = project.description
+            displayName = 'UniversalLibrary'
+            version = project.version
+            implementationClass = "dev.huskuraft.gradle.plugins.universal.UniversalLibraryPlugin"
+        }
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+    implementation "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:8.3.6"
+    implementation "com.google.code.gson:gson:2.8.7"
+    implementation "org.apache.ant:ant:1.10.15"
+    implementation "dev.huskuraft.fuse:fuse-gradle-plugin:0.1.0"
+
+}
+
+artifacts {
+    archives(tasks.jar)
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifactId = "universal-gradle-plugin"
+        }
+    }
+}
