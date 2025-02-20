@@ -30,9 +30,6 @@ class UniversalTarget {
         return VersionResolver.getVersionInfoById(version)
     }
 
-    static enum Loader {
-        FABRIC, QUILT, FORGE, NEOFORGE
-    }
 
     static UniversalTarget[] primaryTargets() {
         return [

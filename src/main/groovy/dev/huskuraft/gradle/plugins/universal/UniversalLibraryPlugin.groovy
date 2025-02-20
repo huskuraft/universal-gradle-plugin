@@ -12,7 +12,6 @@ class UniversalLibraryPlugin implements Plugin<Project> {
         project.pluginManager.apply('maven-publish')
         project.pluginManager.apply('com.gradleup.shadow')
         project.group = "dev.huskuraft.universal"
-        project.version = project.api_version
 
         def minecraftVersion = VersionResolver.getVersionInfoById("${project.minecraft_version}")
 
@@ -31,6 +30,7 @@ class UniversalLibraryPlugin implements Plugin<Project> {
             mapping_version = project.minecraft_version
 
             mod_id='universal'
+            mod_version=project.version
             mod_authors='Huskuraft'
             mod_name='Universal API'
             mod_license='LGPLv3'
