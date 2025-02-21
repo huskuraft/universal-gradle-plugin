@@ -20,10 +20,10 @@ class UniversalPlugin implements Plugin<Project> {
 //    static String NIGHT_CONFIG_GROUP = "com.electronwill.nightconfig"
 
     static String SHADOW_JAR_TASK = "shadowJar"
-    static String FUSE_JAR_TASK = "fuseJar"
+//    static String FUSE_JAR_TASK = "fuseJar"
 
     static String SHADOW_JAR_TARGET_TASK = "shadowJarTarget"
-    static String FUSE_JAR_TARGET_TASK = "fuseJarTarget"
+//    static String FUSE_JAR_TARGET_TASK = "fuseJarTarget"
 
     void apply(Project project) {
         project.pluginManager.apply(ShadowPlugin.class)
@@ -99,7 +99,7 @@ class UniversalPlugin implements Plugin<Project> {
 
     private static void setupTarget(Project project, UniversalTarget target) {
         def shadowJarTarget = SHADOW_JAR_TARGET_TASK
-        def fuseJarTarget = FUSE_JAR_TARGET_TASK
+//        def fuseJarTarget = FUSE_JAR_TARGET_TASK
 //        def shadowJar = SHADOW_JAR_TASK
 //        def fuseJar = FUSE_JAR_TASK
 

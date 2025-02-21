@@ -44,7 +44,6 @@ dependencies {
     implementation 'net.bytebuddy:byte-buddy-gradle-plugin:1.17.1'
     implementation "com.google.code.gson:gson:2.8.7"
     implementation "org.apache.ant:ant:1.10.15"
-    implementation "dev.huskuraft.fuse:fuse-gradle-plugin:0.1.0"
 }
 
 artifacts {
