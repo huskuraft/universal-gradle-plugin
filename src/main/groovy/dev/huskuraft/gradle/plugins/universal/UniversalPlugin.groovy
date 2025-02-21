@@ -2,7 +2,12 @@ package dev.huskuraft.gradle.plugins.universal
 
 import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import dev.huskuraft.gradle.plugins.fuse.tasks.FuseJar
+import dev.huskuraft.gradle.plugins.universal.plugin.RenameForgeModIdPlugin
+import dev.huskuraft.gradle.plugins.universal.transformer.FabricModJsonTransformer
+import net.bytebuddy.build.gradle.ByteBuddyPlugin
+import net.bytebuddy.build.gradle.ByteBuddyTaskExtension
+import net.bytebuddy.build.gradle.PluginArgument
+import net.bytebuddy.build.gradle.Transformation
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -12,7 +17,7 @@ import org.gradle.jvm.tasks.Jar
 class UniversalPlugin implements Plugin<Project> {
 
     static String API_GROUP = "dev.huskuraft.universal"
-    static String NIGHT_CONFIG_GROUP = "com.electronwill.nightconfig"
+//    static String NIGHT_CONFIG_GROUP = "com.electronwill.nightconfig"
 
     static String SHADOW_JAR_TASK = "shadowJar"
     static String FUSE_JAR_TASK = "fuseJar"
@@ -22,6 +27,8 @@ class UniversalPlugin implements Plugin<Project> {
 
     void apply(Project project) {
         project.pluginManager.apply(ShadowPlugin.class)
+        project.pluginManager.apply(ByteBuddyPlugin.class)
+
         def extension = project.extensions.create('universal', UniversalExtension.class)
 
         project.dependencies {
@@ -30,17 +37,20 @@ class UniversalPlugin implements Plugin<Project> {
             annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
             compileOnly 'com.google.auto.service:auto-service:1.1.1'
 
-            implementation 'com.electronwill.night-config:core:3.6.7'
-            runtimeOnly 'com.electronwill.night-config:toml:3.6.7'
-
             compileOnly 'io.netty:netty-all:4.1.109.Final'
             compileOnly 'dev.huskuraft.universal:common-api:+'
+            byteBuddy 'dev.huskuraft.universal:common-api:+'
         }
 
+        setupAsm(project)
+
         project.afterEvaluate {
-            checkExtension(extension)
-            setupMod(project, extension.toMod())
+            registerTasks(project)
+            extension.includeTargets.get().forEach {
+                setupTarget(project, it)
+            }
         }
+
     }
 
     private static void checkExtension(UniversalExtension extension) {
@@ -56,26 +66,21 @@ class UniversalPlugin implements Plugin<Project> {
     }
 
     private static void setupMod(Project project, UniversalMod mod) {
-        registerTasks(project, mod)
-
-        mod.includeTargets.forEach {
-            setupTarget(project, mod, it)
-        }
     }
 
-    private static void registerTasks(Project project, UniversalMod mod) {
+    private static void registerTasks(Project project) {
         def minecraftShadowJar = SHADOW_JAR_TARGET_TASK
-        def minecraftFuseJar = FUSE_JAR_TARGET_TASK
+//        def minecraftFuseJar = FUSE_JAR_TARGET_TASK
         def shadowJar = SHADOW_JAR_TASK
-        def fuseJar = FUSE_JAR_TASK
+//        def fuseJar = FUSE_JAR_TASK
 
         project.tasks.register(minecraftShadowJar, ShadowJar.class, task -> {
             task.setGroup("shadow")
         })
 
-        project.tasks.register(minecraftFuseJar, FuseJar.class, task -> {
-            task.setGroup("fuse")
-        })
+//        project.tasks.register(minecraftFuseJar, FuseJar.class, task -> {
+//            task.setGroup("fuse")
+//        })
 
         project.tasks.named(shadowJar, ShadowJar.class, task -> {
             task.dependsOn('jar')
@@ -84,7 +89,7 @@ class UniversalPlugin implements Plugin<Project> {
             task.dependencyFilter.exclude(task.dependencyFilter.dependency("com.google.code.findbugs:jsr305"))
 
             task.relocate(API_GROUP, project.group.toString())
-            task.relocate(NIGHT_CONFIG_GROUP, "${project.group.toString()}.api.nightconfig")
+//            task.relocate(NIGHT_CONFIG_GROUP, "${project.group.toString()}.api.nightconfig")
         })
 
         project.tasks.named("build", build -> {
@@ -92,11 +97,11 @@ class UniversalPlugin implements Plugin<Project> {
         })
     }
 
-    private static void setupTarget(Project project, UniversalMod mod, UniversalTarget target) {
+    private static void setupTarget(Project project, UniversalTarget target) {
         def shadowJarTarget = SHADOW_JAR_TARGET_TASK
         def fuseJarTarget = FUSE_JAR_TARGET_TASK
-        def shadowJar = SHADOW_JAR_TASK
-        def fuseJar = FUSE_JAR_TASK
+//        def shadowJar = SHADOW_JAR_TASK
+//        def fuseJar = FUSE_JAR_TASK
 
         def versionId = target.minecraft.id
         def versionCode = target.minecraft.dataVersion
@@ -108,7 +113,7 @@ class UniversalPlugin implements Plugin<Project> {
         }
 
         def shadowJarTargetVersionCode = shadowJarTarget + versionCode
-        def fuseJarTargetVersionCode = fuseJarTarget + versionCode
+//        def fuseJarTargetVersionCode = fuseJarTarget + versionCode
 
         println("Preparing universal target: ${versionId} (${versionCode}), loaders: ${target.loaders.join(", ")}")
 
@@ -134,6 +139,7 @@ class UniversalPlugin implements Plugin<Project> {
             for (def targetDep in targetDeps) {
                 task.dependencyFilter.include(task.dependencyFilter.dependency(targetDep))
             }
+            task.transform(new FabricModJsonTransformer())
 
             task.relocate(API_GROUP, project.group.toString())
 
@@ -151,8 +157,33 @@ class UniversalPlugin implements Plugin<Project> {
 //        })
 
         project.tasks.named(shadowJarTarget, ShadowJar.class, shadow -> shadow.dependsOn(shadowJarTargetVersionCode))
-        project.tasks.named(fuseJarTarget, FuseJar.class, fuse -> fuse.dependsOn(fuseJarTargetVersionCode))
+//        project.tasks.named(fuseJarTarget, FuseJar.class, fuse -> fuse.dependsOn(fuseJarTargetVersionCode))
         project.tasks.named("jar", Jar.class, jar -> jar.setEnabled(false))
     }
+
+    private static void setupAsm(Project project) {
+        UniversalTarget.primaryTargets().toList().forEach {
+            setupAsmTarget(project, null, it)
+        }
+
+        project.extensions.getByType(ByteBuddyTaskExtension.class).transformation { Transformation transformation ->
+            transformation.plugin = RenameForgeModIdPlugin
+            transformation.argument { PluginArgument argument ->
+                argument.value = project.properties.mod_id
+            }
+        }
+    }
+
+    private static void setupAsmTarget(Project project, UniversalMod mod, UniversalTarget target) {
+        def versionCode = target.minecraft.dataVersion
+
+        def targetDeps = target.loaders.collect {
+            "dev.huskuraft.universal:${it.name().toLowerCase()}-api-v${versionCode}" as String
+        }
+        for (def targetDep in targetDeps) {
+            project.dependencies.add("byteBuddy", "${targetDep}:+")
+        }
+    }
+
 
 }

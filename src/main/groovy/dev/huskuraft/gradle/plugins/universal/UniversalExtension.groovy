@@ -8,16 +8,10 @@ import org.gradle.api.provider.Property
 import javax.inject.Inject
 
 abstract class UniversalExtension {
-    final Property<String> id
-    final Property<String> name
-    final Property<String> license
     final ListProperty<UniversalTarget> includeTargets
 
     @Inject
     UniversalExtension(ObjectFactory objectFactory) {
-        id = objectFactory.property(String)
-        name = objectFactory.property(String)
-        license = objectFactory.property(String)
         includeTargets = objectFactory.listProperty(UniversalTarget)
     }
 
@@ -33,10 +27,6 @@ abstract class UniversalExtension {
 
     void includeAllTargets() {
         includeTargets.set(UniversalTarget.allTargets().toList())
-    }
-
-    UniversalMod toMod() {
-        return new UniversalMod(id.get(), name.get(), license.get(), includeTargets.get())
     }
 
 }

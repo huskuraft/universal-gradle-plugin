@@ -29,15 +29,15 @@ class UniversalLibraryPlugin implements Plugin<Project> {
             mapping_channel = "official"
             mapping_version = project.minecraft_version
 
-            mod_id='universal'
-            mod_version=project.version
-            mod_authors='Huskuraft'
-            mod_name='Universal API'
-            mod_license='LGPLv3'
-            mod_description=''
-            mod_display_url='https://github.com/huskuraft/universal-api'
-            mod_sources_url='https://github.com/huskuraft/universal-api'
-            mod_issues_url='https://github.com/huskuraft/universal-api/issues'
+            mod_id = 'universal'
+            mod_version = project.version
+            mod_authors = 'Huskuraft'
+            mod_name = 'Universal API'
+            mod_license = 'LGPLv3'
+            mod_description = ''
+            mod_display_url = 'https://github.com/huskuraft/universal-api'
+            mod_sources_url = 'https://github.com/huskuraft/universal-api'
+            mod_issues_url = 'https://github.com/huskuraft/universal-api/issues'
 
         }
 
@@ -112,21 +112,12 @@ class UniversalLibraryPlugin implements Plugin<Project> {
             }
         }
 
-        switch (project.loader_name) {
-            case 'fabric':
-                project.pluginManager.apply(UniversalFabricPlugin.class)
-                break
-            case 'quilt':
-                project.pluginManager.apply(UniversalQuiltPlugin.class)
-                break
-            case 'forge':
-                project.pluginManager.apply(UniversalForgePlugin.class)
-                break
-            case 'neoforge':
-                project.pluginManager.apply(UniversalNeoForgePlugin.class)
-                break
-        }
-
+        project.pluginManager.apply([
+            'fabric'  : UniversalFabricPlugin.class,
+            'quilt'   : UniversalQuiltPlugin.class,
+            'forge'   : UniversalForgePlugin.class,
+            'neoforge': UniversalNeoForgePlugin.class
+        ].get(project.loader_name))
 
     }
 

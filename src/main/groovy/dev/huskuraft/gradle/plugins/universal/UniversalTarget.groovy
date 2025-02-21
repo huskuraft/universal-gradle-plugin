@@ -44,7 +44,7 @@ class UniversalTarget {
             new UniversalTarget(minecraft: version('1.20.4'), loaders: [fabric(), quilt(), forge()]),
             new UniversalTarget(minecraft: version('1.20.6'), loaders: [fabric(), quilt(), forge(), neoforge()]),
             new UniversalTarget(minecraft: version('1.21.1'), loaders: [fabric(), quilt(), forge(), neoforge()]),
-            new UniversalTarget(minecraft: version('1.21.3'), loaders: [fabric(), quilt(), forge(), neoforge()]),
+            new UniversalTarget(minecraft: version('1.21.3'), loaders: [fabric(), quilt(), neoforge()]),
         ]
     }
 
