@@ -2,6 +2,7 @@ package dev.huskuraft.gradle.plugins.universal.task.modification
 
 
 import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
 
 import java.util.zip.ZipEntry
@@ -17,15 +18,13 @@ abstract class ClassModification implements Modification {
 
     @Override
     void apply(InputStream inputStream, OutputStream outputStream) {
-        // Read the class bytes
-        def classBytes = inputStream.bytes
-
         // Initialize ClassReader and ClassWriter
-        def classReader = new ClassReader(classBytes)
+        def classReader = new ClassReader(inputStream)
         def classWriter = new ClassWriter(classReader, 0)
 
         // Apply the modification
-        modifyClass(classWriter)
+        def visitor = createVisitor(classWriter)
+        classReader.accept(visitor, 0)
 
         // Write the modified class to the output stream
         def modifiedClassBytes = classWriter.toByteArray()
@@ -33,9 +32,9 @@ abstract class ClassModification implements Modification {
     }
 
     /**
-     * Abstract method to modify the class using the provided ClassWriter.
+     * Abstract method to create a ClassVisitor to modify the class.
      *
      * @param classWriter The ClassWriter to use for modifications.
      */
-    abstract void modifyClass(ClassWriter classWriter)
+    abstract ClassVisitor createVisitor(ClassWriter classWriter)
 }

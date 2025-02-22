@@ -2,7 +2,6 @@ package dev.huskuraft.gradle.plugins.universal
 
 import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import dev.huskuraft.gradle.plugins.universal.task.modification.AnnotationModification
 import dev.huskuraft.gradle.plugins.universal.task.JarModificationTask
 import dev.huskuraft.gradle.plugins.universal.transformer.FabricModJsonTransformer
 import org.gradle.api.Plugin
@@ -10,7 +9,6 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.jvm.tasks.Jar
 
 class UniversalPlugin implements Plugin<Project> {
 
@@ -79,11 +77,18 @@ class UniversalPlugin implements Plugin<Project> {
     }
 
     private static void registerTasks(Project project) {
-        def minecraftShadowJar = SHADOW_JAR_TARGET_TASK
+        def shadowJarTarget = SHADOW_JAR_TARGET_TASK
         def shadowJar = SHADOW_JAR_TASK
+        def transformJarTarget = TRANSFORM_JAR_TARGET_TASK
+        def transformJar = TRANSFORM_JAR_TASK
 
-        project.tasks.register(minecraftShadowJar, ShadowJar.class, task -> {
-            task.setGroup("shadow")
+        project.tasks.register(transformJarTarget, task -> {
+            task.dependsOn(shadowJarTarget)
+            task.group = 'transform'
+        })
+
+        project.tasks.register(shadowJarTarget, ShadowJar.class, task -> {
+            task.group = 'shadow'
         })
 
         project.tasks.named(shadowJar, ShadowJar.class, task -> {
@@ -97,7 +102,7 @@ class UniversalPlugin implements Plugin<Project> {
         })
 
         project.tasks.named("build", build -> {
-            build.dependsOn(minecraftShadowJar)
+            build.dependsOn(transformJarTarget)
         })
     }
 
@@ -148,21 +153,29 @@ class UniversalPlugin implements Plugin<Project> {
         })
 
         def transformJarTargetTask = project.tasks.register(transformJarTargetVersionCode, JarModificationTask.class, task -> {
+            task.dependsOn(shadowJarTargetVersionCode)
+
             task.group = 'transform'
             task.inputFile = shadowJarTargetTask.get().archiveFile
 
-            task.modification(new AnnotationModification(
-                descriptor: "Lnet/minecraftforge/fml/common/Mod;",
-                field: "modid",
-                newValue: "${project.properties.mod_id}"
-            ))
+            task.annotation {
+                it.descriptor = "Lnet/minecraftforge/fml/common/Mod;"
+                it.field = "value"
+                it.newValue = "${project.properties.mod_id}".toString()
+            }
+
+            task.annotation {
+                it.descriptor = "Lnet/neoforged/fml/common/Mod;"
+                it.field = "value"
+                it.newValue = "${project.properties.mod_id}".toString()
+            }
+
         })
 
-        transformJarTargetTask.get().dependsOn(shadowJarTargetTask.get())
-        shadowJarTargetTask.get().finalizedBy(transformJarTargetTask.get())
+        project.tasks.named(shadowJarTarget,task -> task.dependsOn(shadowJarTargetVersionCode))
+        project.tasks.named(transformJarTarget, task -> task.dependsOn(transformJarTargetVersionCode))
 
-        project.tasks.named(shadowJarTarget, ShadowJar.class, shadow -> shadow.dependsOn(shadowJarTargetVersionCode))
-        project.tasks.named("jar", Jar.class, jar -> jar.setEnabled(false))
+        project.tasks.named("jar", task -> task.setEnabled(false))
     }
 
 }
