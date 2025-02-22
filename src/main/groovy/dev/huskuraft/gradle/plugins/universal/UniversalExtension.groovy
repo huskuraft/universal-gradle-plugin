@@ -21,12 +21,11 @@ abstract class UniversalExtension {
         includeTargets.add(target)
     }
 
-    void includePrimaryTargets() {
-        includeTargets.set(UniversalTarget.primaryTargets().toList())
-    }
-
-    void includeAllTargets() {
-        includeTargets.set(UniversalTarget.allTargets().toList())
+    void includeTarget(String minecraft, List<String> loaders) {
+        def target = new UniversalTarget()
+        target.minecraft(minecraft)
+        target.loaders(loaders)
+        includeTargets.add(target)
     }
 
 }

@@ -2,13 +2,16 @@ package dev.huskuraft.gradle.plugins.universal
 
 import dev.huskuraft.gradle.plugins.universal.versioning.Minecraft
 import dev.huskuraft.gradle.plugins.universal.versioning.VersionResolver
+import groovy.transform.Internal
 
 class UniversalTarget {
 
     Minecraft minecraft
     Loader[] loaders
 
-    void loaders(String... loaders) { this.loaders = loaders.collect { Loader.valueOf(it) } }
+    void loaders(String... loaders) { this.loaders = loaders.collect { Loader.valueOf(it.toUpperCase()) } }
+
+    void loaders(List<String> loaders) { this.loaders = loaders.collect { Loader.valueOf(it.toUpperCase()) } }
 
     void loaders(Loader... loaders) { this.loaders = loaders }
 
@@ -22,59 +25,22 @@ class UniversalTarget {
 
     static Loader neoforge() { return Loader.NEOFORGE }
 
-    void minecraft(Minecraft minecraft) {
-        this.minecraft = minecraft
+    void minecraft(Object object) {
+        if (object instanceof String) {
+            this.minecraft = version(object)
+        } else if (object instanceof Minecraft) {
+            this.minecraft = object
+        } else {
+            throw new IllegalArgumentException("'minecraft' must be a String or a Minecraft object")
+        }
     }
 
     static Minecraft version(String version) {
         return VersionResolver.getVersionInfoById(version)
     }
 
-
-    static UniversalTarget[] primaryTargets() {
-        return [
-            new UniversalTarget(minecraft: version('1.17.1'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.18.1'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.18.2'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.19.2'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.19.3'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.19.4'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.1'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.2'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.4'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.6'), loaders: [fabric(), quilt(), forge(), neoforge()]),
-            new UniversalTarget(minecraft: version('1.21.1'), loaders: [fabric(), quilt(), forge(), neoforge()]),
-            new UniversalTarget(minecraft: version('1.21.3'), loaders: [fabric(), quilt(), neoforge()]),
-        ]
+    static Minecraft versionCode(String version) {
+        return VersionResolver.getVersionInfoById(version)
     }
-
-    static UniversalTarget[] allTargets() {
-        return [
-            new UniversalTarget(minecraft: version('1.17.1'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.18'),   loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.18.1'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.18.2'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.19'),   loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.19.1'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.19.2'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.19.3'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.19.4'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20'),   loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.1'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.2'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.3'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.4'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.5'), loaders: [fabric(), quilt(), forge()]),
-            new UniversalTarget(minecraft: version('1.20.6'), loaders: [fabric(), quilt(), forge(), neoforge()]),
-            new UniversalTarget(minecraft: version('1.21'),   loaders: [fabric(), quilt(), forge(), neoforge()]),
-            new UniversalTarget(minecraft: version('1.21.1'), loaders: [fabric(), quilt(), forge(), neoforge()]),
-            new UniversalTarget(minecraft: version('1.21.2'), loaders: [fabric(), quilt(), forge(), neoforge()]),
-            new UniversalTarget(minecraft: version('1.21.3'), loaders: [fabric(), quilt(), forge(), neoforge()]),
-            new UniversalTarget(minecraft: version('1.21.4'), loaders: [fabric(), quilt(), forge(), neoforge()]),
-        ]
-    }
-
-
-
 
 }
