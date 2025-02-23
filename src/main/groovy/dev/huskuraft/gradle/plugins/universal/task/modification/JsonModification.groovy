@@ -21,9 +21,9 @@ abstract class JsonModification implements Modification {
     }
 
     @Override
-    void apply(InputStream inputStream, OutputStream outputStream) {
+    OutputStream apply(InputStream inputStream) {
         // Parse the input JSON file
-        JsonElement jsonElement = JsonParser.parseReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
+        def jsonElement = JsonParser.parseReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
         println("Applying JSON modification to: ${jsonElement}")
 
         // Ensure the JSON is an object (not an array or primitive)
@@ -32,16 +32,18 @@ abstract class JsonModification implements Modification {
         }
 
         // Get the JSON object
-        JsonObject jsonObject = jsonElement.asJsonObject
+        def jsonObject = jsonElement.asJsonObject
 
         // Apply the modification to the JSON object
         modifyJson(jsonObject)
 
         // Write the modified JSON to the output stream
+        def outputStream = new ByteArrayOutputStream()
         outputStream.withWriter(StandardCharsets.UTF_8.name()) { writer ->
             def gson = new GsonBuilder().setPrettyPrinting().create()
             gson.toJson(jsonObject, writer)
         }
+        return outputStream
     }
 
     /**

@@ -15,10 +15,20 @@ interface Modification {
     boolean appliesTo(ZipEntry entry)
 
     /**
+     * Applies the modification to the entry
+     *
+     * @param inputStream The original entry.
+     * @param outputStream The modified entry.
+     */
+    default ZipEntry apply(ZipEntry inputEntry) {
+        return inputEntry
+    }
+
+    /**
      * Applies the modification to the entry's input stream and writes the result to the output stream.
      *
      * @param inputStream The input stream of the entry.
      * @param outputStream The output stream to write the modified entry.
      */
-    void apply(InputStream inputStream, OutputStream outputStream)
+    OutputStream apply(InputStream inputStream)
 }

@@ -20,7 +20,7 @@ abstract class ClassModification implements Modification {
     }
 
     @Override
-    void apply(InputStream inputStream, OutputStream outputStream) {
+    OutputStream apply(InputStream inputStream) {
         // Initialize ClassReader and ClassWriter
         def classReader = new ClassReader(inputStream)
         def classWriter = new ClassWriter(classReader, 0)
@@ -30,8 +30,10 @@ abstract class ClassModification implements Modification {
         classReader.accept(visitor, 0)
 
         // Write the modified class to the output stream
-        def modifiedClassBytes = classWriter.toByteArray()
-        outputStream.write(modifiedClassBytes)
+        def outputStream = new ByteArrayOutputStream()
+        outputStream.write(classWriter.toByteArray())
+
+        return outputStream
     }
 
     /**

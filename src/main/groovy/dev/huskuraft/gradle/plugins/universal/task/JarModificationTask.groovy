@@ -67,20 +67,23 @@ class JarModificationTask extends DefaultTask {
         def jarOutput = new JarOutputStream(new FileOutputStream(tempOutputJar))
 
         jarInput.entries().each { entry ->
-            def outputEntry = new ZipEntry(entry.name)
-            def inputStream = jarInput.getInputStream(entry)
 
             // Find modifications that apply to this entry
             def applicableModifications = modifications.findAll { it.appliesTo(entry) }
 
             if (applicableModifications) {
-                // Start with the original input stream
+                def inputEntry = entry
+                def outputEntry = entry
+
+                def inputStream = jarInput.getInputStream(entry)
                 def outputStream = new ByteArrayOutputStream()
 
                 // Apply modifications sequentially
                 applicableModifications.forEach { modification ->
-                    outputStream = new ByteArrayOutputStream() // Reset output stream for each modification
-                    modification.apply(inputStream, outputStream)
+                    outputEntry = modification.apply(inputEntry)
+                    inputEntry = outputEntry // Update input stream for next modification
+
+                    outputStream = modification.apply(inputStream)
                     inputStream = new ByteArrayInputStream(outputStream.toByteArray()) // Update input stream for next modification
                 }
 
@@ -91,6 +94,8 @@ class JarModificationTask extends DefaultTask {
                 inputStream.close()
             } else {
                 // Copy the entry as-is
+                def inputStream = jarInput.getInputStream(entry)
+                def outputEntry = new ZipEntry(entry.name)
                 jarOutput.putNextEntry(outputEntry)
                 jarOutput.write(inputStream.bytes)
                 jarOutput.closeEntry()
