@@ -9,6 +9,8 @@ import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricMod
 import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricMixinsJsonRenameModification
 import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricRefmapJsonPropertyModification
 import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricRefmapJsonRenameModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.forge.ForgeAnnotationModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.neoforge.NeoForgeAnnotationModification
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -160,19 +162,8 @@ class UniversalPlugin implements Plugin<Project> {
             task.group = 'transform'
             task.inputFile = shadowJarTargetTask.get().archiveFile
 
-            task.annotation {
-                it.descriptor = "Lnet/minecraftforge/fml/common/Mod;"
-                it.field = "value"
-                it.newValue = "${project.properties.mod_id}".toString()
-            }
-
-            task.annotation {
-                it.descriptor = "Lnet/neoforged/fml/common/Mod;"
-                it.field = "value"
-                it.newValue = "${project.properties.mod_id}".toString()
-            }
-
             def mod = Mod.create(project)
+
             task.modification(new FabricModJsonPropertyModification(mod))
 
             task.modification(new FabricMixinsJsonPropertyModification(mod))
@@ -182,6 +173,10 @@ class UniversalPlugin implements Plugin<Project> {
             task.modification(new FabricRefmapJsonRenameModification(mod))
 
             task.modification(new FabricAccessWidenerRenameModification(mod))
+
+            task.modification(new ForgeAnnotationModification(mod))
+
+            task.modification(new NeoForgeAnnotationModification(mod))
 
 
 
