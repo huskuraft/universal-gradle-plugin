@@ -41,11 +41,12 @@ dependencies {
     implementation gradleApi()
     implementation localGroovy()
     implementation "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:8.3.6"
-    implementation "com.google.code.gson:gson:2.8.7"
     implementation "org.apache.ant:ant:1.10.15"
 
     implementation 'org.ow2.asm:asm:9.5'
     implementation 'org.ow2.asm:asm-commons:9.5'
+
+    implementation "com.google.code.gson:gson:2.8.7"
 }
 
 artifacts {

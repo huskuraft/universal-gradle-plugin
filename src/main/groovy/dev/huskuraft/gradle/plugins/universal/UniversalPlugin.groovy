@@ -3,7 +3,7 @@ package dev.huskuraft.gradle.plugins.universal
 import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dev.huskuraft.gradle.plugins.universal.task.JarModificationTask
-import dev.huskuraft.gradle.plugins.universal.transformer.FabricModJsonTransformer
+import dev.huskuraft.gradle.plugins.universal.task.modification.FabricModJsonModification
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -60,6 +60,7 @@ class UniversalPlugin implements Plugin<Project> {
             'mod_name',
             'mod_license',
             'mod_version',
+            'mod_environment',
             'mod_group_id',
             'mod_authors',
             'mod_description',
@@ -71,9 +72,6 @@ class UniversalPlugin implements Plugin<Project> {
                 throw new IllegalStateException("'${it}' not found in properties")
             }
         }
-    }
-
-    private static void setupMod(Project project, UniversalMod mod) {
     }
 
     private static void registerTasks(Project project) {
@@ -146,7 +144,6 @@ class UniversalPlugin implements Plugin<Project> {
             for (def targetDep in targetDeps) {
                 task.dependencyFilter.include(task.dependencyFilter.dependency(targetDep))
             }
-            task.transform(new FabricModJsonTransformer())
 
             task.relocate(API_GROUP, project.group.toString())
 
@@ -169,6 +166,8 @@ class UniversalPlugin implements Plugin<Project> {
                 it.field = "value"
                 it.newValue = "${project.properties.mod_id}".toString()
             }
+
+            task.modification(new FabricModJsonModification(Mod.create(project)))
 
         })
 

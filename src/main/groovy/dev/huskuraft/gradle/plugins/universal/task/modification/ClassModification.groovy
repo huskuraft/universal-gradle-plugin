@@ -11,9 +11,12 @@ import java.util.zip.ZipEntry
  * Abstract class for modifications that apply to class files within the JAR.
  */
 abstract class ClassModification implements Modification {
+
+    static final String CLASS_EXTENSION = '.class'
+
     @Override
     boolean appliesTo(ZipEntry entry) {
-        return entry.name.endsWith('.class') // Only apply to .class files
+        return entry.name.endsWith(CLASS_EXTENSION) // Only apply to .class files
     }
 
     @Override
