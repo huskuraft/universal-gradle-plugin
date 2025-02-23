@@ -29,7 +29,7 @@ public class FabricModJsonPropertyModification extends JsonModification {
     @Override
     public boolean appliesTo(JarEntry entry) {
         // Only apply to the `fabric.mod.json` file
-        return entry.getName().endsWith(FILE_NAME);
+        return entry.getName().equals(FILE_NAME);
     }
 
     @Override

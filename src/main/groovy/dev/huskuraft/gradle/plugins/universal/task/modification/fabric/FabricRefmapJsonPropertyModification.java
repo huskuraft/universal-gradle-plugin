@@ -12,7 +12,7 @@ import java.util.jar.JarEntry;
 public class FabricRefmapJsonPropertyModification extends JsonModification {
 
     /** The name of the `refmap.json` file. */
-    public static final String FILE_NAME = "refmap.json";
+    public static final String FILE_NAME = "fabric.refmap.json";
 
     private final Mod mod;
 
@@ -28,7 +28,7 @@ public class FabricRefmapJsonPropertyModification extends JsonModification {
     @Override
     public boolean appliesTo(JarEntry entry) {
         // Only apply to the `refmap.json` file
-        return entry.getName().endsWith(FILE_NAME);
+        return entry.getName().equals(FILE_NAME);
     }
 
     @Override

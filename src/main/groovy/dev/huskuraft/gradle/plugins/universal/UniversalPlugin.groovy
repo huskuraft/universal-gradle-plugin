@@ -10,7 +10,9 @@ import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricMix
 import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricRefmapJsonPropertyModification
 import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricRefmapJsonRenameModification
 import dev.huskuraft.gradle.plugins.universal.task.modification.forge.ForgeAnnotationModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.forge.ForgeModTomlModification
 import dev.huskuraft.gradle.plugins.universal.task.modification.neoforge.NeoForgeAnnotationModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.neoforge.NeoForgeModTomlModification
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -174,8 +176,10 @@ class UniversalPlugin implements Plugin<Project> {
 
             task.modification(new FabricAccessWidenerRenameModification(mod))
 
+            task.modification(new ForgeModTomlModification(mod))
             task.modification(new ForgeAnnotationModification(mod))
 
+            task.modification(new NeoForgeModTomlModification(mod))
             task.modification(new NeoForgeAnnotationModification(mod))
 
 

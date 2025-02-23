@@ -12,7 +12,7 @@ import java.util.jar.JarEntry;
 public class FabricMixinsJsonPropertyModification extends JsonModification {
 
     /** The name of the `mixins.json` file. */
-    public static final String FILE_NAME = "mixins.json";
+    public static final String FILE_NAME = "fabric.mixins.json";
 
     private final Mod mod;
 
@@ -28,7 +28,7 @@ public class FabricMixinsJsonPropertyModification extends JsonModification {
     @Override
     public boolean appliesTo(JarEntry entry) {
         // Only apply to the `mixins.json` file
-        return entry.getName().endsWith(FILE_NAME);
+        return entry.getName().equals(FILE_NAME);
     }
 
     @Override
