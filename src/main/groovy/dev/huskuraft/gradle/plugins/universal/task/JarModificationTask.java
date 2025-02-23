@@ -81,10 +81,7 @@ public class JarModificationTask extends DefaultTask {
                         // Apply modifications sequentially
                         var modifiedEntry = entry; // Start with the original entry
                         for (var modification : applicableModifications) {
-                            // Update the JarEntry using the apply(JarEntry) method
                             modifiedEntry = modification.apply(modifiedEntry);
-
-                            // Apply the byte[] modification
                             entryContent = modification.apply(entryContent);
                         }
 

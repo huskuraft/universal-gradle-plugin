@@ -3,7 +3,12 @@ package dev.huskuraft.gradle.plugins.universal
 import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dev.huskuraft.gradle.plugins.universal.task.JarModificationTask
-import dev.huskuraft.gradle.plugins.universal.task.modification.FabricModJsonModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricAccessWidenerRenameModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricMixinsJsonPropertyModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricModJsonPropertyModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricMixinsJsonRenameModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricRefmapJsonPropertyModification
+import dev.huskuraft.gradle.plugins.universal.task.modification.fabric.FabricRefmapJsonRenameModification
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -167,7 +172,18 @@ class UniversalPlugin implements Plugin<Project> {
                 it.newValue = "${project.properties.mod_id}".toString()
             }
 
-            task.modification(new FabricModJsonModification(Mod.create(project)))
+            def mod = Mod.create(project)
+            task.modification(new FabricModJsonPropertyModification(mod))
+
+            task.modification(new FabricMixinsJsonPropertyModification(mod))
+            task.modification(new FabricMixinsJsonRenameModification(mod))
+
+            task.modification(new FabricRefmapJsonPropertyModification(mod))
+            task.modification(new FabricRefmapJsonRenameModification(mod))
+
+            task.modification(new FabricAccessWidenerRenameModification(mod))
+
+
 
         })
 

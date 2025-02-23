@@ -1,15 +1,16 @@
-package dev.huskuraft.gradle.plugins.universal.task.modification;
+package dev.huskuraft.gradle.plugins.universal.task.modification.fabric;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import dev.huskuraft.gradle.plugins.universal.Mod;
+import dev.huskuraft.gradle.plugins.universal.task.modification.JsonModification;
 
 import java.util.jar.JarEntry;
 
 /**
  * A modification that updates the `fabric.mod.json` file within a JAR.
  */
-public class FabricModJsonModification extends JsonModification {
+public class FabricModJsonPropertyModification extends JsonModification {
 
     /** The name of the `fabric.mod.json` file. */
     public static final String FILE_NAME = "fabric.mod.json";
@@ -21,7 +22,7 @@ public class FabricModJsonModification extends JsonModification {
      *
      * @param mod The mod information to use for modifications.
      */
-    public FabricModJsonModification(Mod mod) {
+    public FabricModJsonPropertyModification(Mod mod) {
         this.mod = mod;
     }
 
