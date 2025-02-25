@@ -15,14 +15,14 @@ java {
 
 gradlePlugin {
     plugins {
-        create("universal") {
+        universal {
             id = 'dev.huskuraft.universal'
             description = project.description
             displayName = 'Universal'
             version = project.version
             implementationClass = "dev.huskuraft.gradle.plugins.universal.UniversalPlugin"
         }
-        create("universal-library") {
+        universalLibrary {
             id = 'dev.huskuraft.universal-library'
             description = project.description
             displayName = 'UniversalLibrary'
@@ -60,9 +60,14 @@ artifacts {
 }
 
 publishing {
-    publications {
-        maven(MavenPublication) {
-            artifactId = "universal-gradle-plugin"
+    repositories {
+        maven {
+            name = "Huskuraft"
+            url = "https://repo.huskuraft.dev/releases"
+            credentials {
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_PASSWORD")
+            }
         }
     }
 }
