@@ -22,13 +22,6 @@ gradlePlugin {
             version = project.version
             implementationClass = "dev.huskuraft.gradle.plugins.universal.UniversalPlugin"
         }
-        universalLibrary {
-            id = 'dev.huskuraft.universal-library'
-            description = project.description
-            displayName = 'UniversalLibrary'
-            version = project.version
-            implementationClass = "dev.huskuraft.gradle.plugins.universal.UniversalLibraryPlugin"
-        }
     }
 }
 
