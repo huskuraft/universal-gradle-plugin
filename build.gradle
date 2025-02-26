@@ -1,8 +1,10 @@
-apply plugin: 'groovy'
-apply plugin: 'idea'
-apply plugin: 'java-library'
-apply plugin: 'maven-publish'
-apply plugin: 'java-gradle-plugin'
+plugins {
+    id 'groovy'
+    id 'idea'
+    id 'java-library'
+    id 'maven-publish'
+    id 'java-gradle-plugin'
+}
 
 group = 'dev.huskuraft.universal'
 version = plugin_version
@@ -20,7 +22,7 @@ gradlePlugin {
             description = project.description
             displayName = 'Universal'
             version = project.version
-            implementationClass = "dev.huskuraft.gradle.plugins.universal.UniversalPlugin"
+            implementationClass = "dev.huskuraft.universal.gradle.UniversalPlugin"
         }
     }
 }
@@ -46,10 +48,6 @@ dependencies {
     implementation 'com.electronwill.night-config:json:3.6.7'
 
 
-}
-
-artifacts {
-    archives(tasks.jar)
 }
 
 publishing {
