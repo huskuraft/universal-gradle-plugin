@@ -168,55 +168,56 @@ class UniversalPlugin implements Plugin<Project> {
         project.dependencies.add(configuration, "${apiDep}")
         project.dependencies.add(configuration, "${targetDep}")
 
+        def shadowJarTargetTaskCreated = project.tasks.findByName(shadowJarTargetVersionCode) != null
         def shadowJarTargetTask = project.tasks.maybeCreate(shadowJarTargetVersionCode, ShadowJar.class)
-        shadowJarTargetTask.group = "shadow"
-        shadowJarTargetTask.archiveClassifier.set(minecraftId)
-        shadowJarTargetTask.from(project.extensions.getByType(JavaPluginExtension).sourceSets.main.output)
-        shadowJarTargetTask.configurations = [project.configurations.named(configuration).get()]
+        if (shadowJarTargetTaskCreated) {
+            shadowJarTargetTask.dependencyFilter.include(shadowJarTargetTask.dependencyFilter.dependency(apiDep))
+            shadowJarTargetTask.dependencyFilter.include(shadowJarTargetTask.dependencyFilter.dependency(targetDep))
+        } else {
+            shadowJarTargetTask.group = "shadow"
+            shadowJarTargetTask.archiveClassifier.set(minecraftId)
+            shadowJarTargetTask.from(project.extensions.getByType(JavaPluginExtension).sourceSets.main.output)
+            shadowJarTargetTask.configurations = [project.configurations.named(configuration).get()]
 
-        shadowJarTargetTask.mergeServiceFiles()
-
-        shadowJarTargetTask.relocate(API_GROUP, project.group.toString())
-
-        shadowJarTargetTask.dependencyFilter.include(shadowJarTargetTask.dependencyFilter.dependency(apiDep))
-        shadowJarTargetTask.dependencyFilter.include(shadowJarTargetTask.dependencyFilter.dependency(targetDep))
-
+            shadowJarTargetTask.mergeServiceFiles()
+            shadowJarTargetTask.relocate(API_GROUP, project.group.toString())
+        }
 
         def transformJarTargetTaskCreated = project.tasks.findByName(transformJarTargetVersionCode) != null
         def transformJarTargetTask = project.tasks.maybeCreate(transformJarTargetVersionCode, JarModificationTask.class)
-        if (!transformJarTargetTaskCreated) {
+        if (transformJarTargetTaskCreated) {
+            def mod = Mod.create(project)
+            switch (apis[api]) {
+                case Loader.FABRIC:
+                    transformJarTargetTask.modification(new FabricModJsonPropertyModification(mod))
+
+                    transformJarTargetTask.modification(new FabricMixinsJsonPropertyModification(mod))
+                    transformJarTargetTask.modification(new FabricMixinsJsonRenameModification(mod))
+
+                    transformJarTargetTask.modification(new FabricRefmapJsonPropertyModification(mod))
+                    transformJarTargetTask.modification(new FabricRefmapJsonRenameModification(mod))
+
+                    transformJarTargetTask.modification(new FabricAccessWidenerRenameModification(mod))
+
+                    break
+                case Loader.QUILT:
+                    break
+                case Loader.FORGE:
+
+                    transformJarTargetTask.modification(new ForgeModTomlModification(mod))
+                    transformJarTargetTask.modification(new ForgeAnnotationModification(mod))
+                    break
+                case Loader.NEOFORGE:
+
+                    transformJarTargetTask.modification(new NeoForgeModTomlModification(mod))
+                    transformJarTargetTask.modification(new NeoForgeAnnotationModification(mod))
+                    break
+
+            }
+        } else {
             transformJarTargetTask.dependsOn(shadowJarTargetVersionCode)
             transformJarTargetTask.group = 'transform'
             transformJarTargetTask.inputFile = shadowJarTargetTask.archiveFile
-        }
-        def mod = Mod.create(project)
-
-        switch (apis[api]) {
-            case Loader.FABRIC:
-                transformJarTargetTask.modification(new FabricModJsonPropertyModification(mod))
-
-                transformJarTargetTask.modification(new FabricMixinsJsonPropertyModification(mod))
-                transformJarTargetTask.modification(new FabricMixinsJsonRenameModification(mod))
-
-                transformJarTargetTask.modification(new FabricRefmapJsonPropertyModification(mod))
-                transformJarTargetTask.modification(new FabricRefmapJsonRenameModification(mod))
-
-                transformJarTargetTask.modification(new FabricAccessWidenerRenameModification(mod))
-
-                break
-            case Loader.QUILT:
-                break
-            case Loader.FORGE:
-
-                transformJarTargetTask.modification(new ForgeModTomlModification(mod))
-                transformJarTargetTask.modification(new ForgeAnnotationModification(mod))
-                break
-            case Loader.NEOFORGE:
-
-                transformJarTargetTask.modification(new NeoForgeModTomlModification(mod))
-                transformJarTargetTask.modification(new NeoForgeAnnotationModification(mod))
-                break
-
         }
 
         project.tasks.named(shadowJarTarget,task -> task.dependsOn(shadowJarTargetVersionCode))
