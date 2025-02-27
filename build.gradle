@@ -19,9 +19,7 @@ gradlePlugin {
     plugins {
         universal {
             id = 'dev.huskuraft.universal'
-            description = project.description
             displayName = 'Universal'
-            version = project.version
             implementationClass = "dev.huskuraft.universal.gradle.UniversalPlugin"
         }
     }
