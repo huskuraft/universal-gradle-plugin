@@ -1,4 +1,4 @@
-name: Release on GitHub
+name: Release on Maven and GitHub
 
 on:
   push:
@@ -6,7 +6,31 @@ on:
       - "v*"
 
 jobs:
+  gradle-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Setup JDKs
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'zulu'
+          cache: 'gradle'
+
+      - name: Publish to Maven
+        uses: gradle/actions/setup-gradle@v3
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+        with:
+          arguments: publish
+
   github-release:
+    needs: gradle-publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
