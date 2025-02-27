@@ -88,7 +88,8 @@ class UniversalPlugin implements Plugin<Project> {
                 throw new IllegalStateException("Invalid universal target: ${targetApi.group}:${targetApi.name}:${targetApi.version}")
             }
 
-            println("Preparing universal target: ${targetApi.group}:${targetApi.name}:${targetApi.version}")
+            project.logger.info("Preparing universal target: ${targetApi.group}:${targetApi.name}:${targetApi.version}")
+
             setupTarget(project, minecraftVersion.get(), targetApi.name, commonApi.version)
 
         }
@@ -112,6 +113,20 @@ class UniversalPlugin implements Plugin<Project> {
         ].forEach {
             if (project.properties.get(it) == null) {
                 throw new IllegalStateException("'${it}' not found in properties")
+            }
+        }
+        [
+            'mod_modrinth_id',
+        ].forEach {
+            if (project.properties.get(it) == null) {
+                project.logger.warn("'${it}' not found in properties, skipping modrinth upload")
+            }
+        }
+        [
+            'mod_curseforge_id',
+        ].forEach {
+            if (project.properties.get(it) == null) {
+                project.logger.warn("'${it}' not found in properties, skipping curseforge upload")
             }
         }
     }
@@ -186,7 +201,7 @@ class UniversalPlugin implements Plugin<Project> {
         def transformJarTargetTaskCreated = project.tasks.findByName(transformJarTargetVersionCode) != null
         def transformJarTargetTask = project.tasks.maybeCreate(transformJarTargetVersionCode, JarModificationTask.class)
         if (transformJarTargetTaskCreated) {
-            def mod = Mod.create(project)
+            def mod = createMod(project)
             switch (apis[api]) {
                 case Loader.FABRIC:
                     transformJarTargetTask.modification(new FabricModJsonPropertyModification(mod))
@@ -224,6 +239,25 @@ class UniversalPlugin implements Plugin<Project> {
         project.tasks.named(transformJarTarget, task -> task.dependsOn(transformJarTargetVersionCode))
 
         project.tasks.named("jar", task -> task.setEnabled(false))
+    }
+
+
+    static Mod createMod(Project project) {
+        return new Mod(
+            project.properties.mod_id.toString(),
+            project.properties.mod_name.toString(),
+            project.properties.mod_license.toString(),
+            project.properties.mod_version.toString(),
+            Environment.valueOf(project.properties.mod_environment.toString().toUpperCase()),
+            project.properties.mod_group_id.toString(),
+            project.properties.mod_authors.toString().split(",").toList(),
+            project.properties.mod_description.toString(),
+            project.properties.mod_display_url.toString(),
+            project.properties.mod_sources_url.toString(),
+            project.properties.mod_issues_url.toString(),
+            project.properties.mod_curseforge_id.toString(),
+            project.properties.mod_modrinth_id.toString(),
+        )
     }
 
 }
