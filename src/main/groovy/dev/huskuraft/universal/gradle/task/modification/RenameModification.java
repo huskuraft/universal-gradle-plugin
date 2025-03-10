@@ -1,5 +1,7 @@
 package dev.huskuraft.universal.gradle.task.modification;
 
+import org.gradle.api.tasks.Input;
+
 import java.util.jar.JarEntry;
 import java.util.regex.Pattern;
 
@@ -8,7 +10,10 @@ import java.util.regex.Pattern;
  */
 public class RenameModification implements Modification {
 
+    @Input
     private final Pattern pattern;
+
+    @Input
     private final String replacement;
 
     /**

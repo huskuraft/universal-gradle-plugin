@@ -203,6 +203,7 @@ class UniversalPlugin implements Plugin<Project> {
             transformJarTargetTask.dependsOn(shadowJarTargetVersionCode)
             transformJarTargetTask.group = 'transform'
             transformJarTargetTask.inputFile = shadowJarTargetTask.archiveFile
+            transformJarTargetTask.outputFile = shadowJarTargetTask.archiveFile
         }
         def mod = createMod(project)
         switch (apis[api]) {
