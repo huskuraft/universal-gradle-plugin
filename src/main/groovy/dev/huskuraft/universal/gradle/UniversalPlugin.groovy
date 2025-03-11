@@ -2,13 +2,10 @@ package dev.huskuraft.universal.gradle
 
 import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import dev.huskuraft.minecraft.gradle.publish.ModPublishPlugin
+import dev.huskuraft.minecraft.gradle.publish.ModPublishingExtension
 import dev.huskuraft.universal.gradle.task.JarModificationTask
-import dev.huskuraft.universal.gradle.task.modification.fabric.FabricAccessWidenerRenameModification
-import dev.huskuraft.universal.gradle.task.modification.fabric.FabricMixinsJsonPropertyModification
-import dev.huskuraft.universal.gradle.task.modification.fabric.FabricModJsonPropertyModification
-import dev.huskuraft.universal.gradle.task.modification.fabric.FabricMixinsJsonRenameModification
-import dev.huskuraft.universal.gradle.task.modification.fabric.FabricRefmapJsonPropertyModification
-import dev.huskuraft.universal.gradle.task.modification.fabric.FabricRefmapJsonRenameModification
+import dev.huskuraft.universal.gradle.task.modification.fabric.*
 import dev.huskuraft.universal.gradle.task.modification.forge.ForgeAnnotationModification
 import dev.huskuraft.universal.gradle.task.modification.forge.ForgeModTomlModification
 import dev.huskuraft.universal.gradle.task.modification.neoforge.NeoForgeAnnotationModification
@@ -28,40 +25,39 @@ class UniversalPlugin implements Plugin<Project> {
     static String SHADOW_JAR_TASK = "shadowJar"
     static String TRANSFORM_JAR_TASK = "transformJar"
 
-    static String SHADOW_JAR_TARGET_TASK = "shadowJarTarget"
-    static String TRANSFORM_JAR_TARGET_TASK = "transformJarTarget"
+    static String SHADOW_JAR_MINECRAFT_TASK = "shadowJarMinecraft"
+    static String TRANSFORM_JAR_MINECRAFT_TASK = "transformJarMinecraft"
 
     void apply(Project project) {
         project.pluginManager.apply(JavaLibraryPlugin.class)
         project.pluginManager.apply(ShadowPlugin.class)
 
-        checkProperties(project)
-
-        project.group = project.properties.mod_group_id
-        project.version = project.properties.mod_version
 
         def extension = project.extensions.create('universal', UniversalExtension.class)
-
 
         project.configurations.create('universalTarget', { Configuration conf ->
             conf.canBeResolved = true
             conf.canBeConsumed = false
         })
 
-
         project.afterEvaluate {
+            checkProperties(project)
+
+            project.group = project.properties.mod_group_id
+            project.version = project.properties.mod_version
+
             registerTasks(project)
             setupTargets(project)
+            setupReleases(project)
         }
+
 
     }
 
-    private static Map<String, Object> apis = [
-        'fabric-api': Loader.FABRIC,
-        'quilt-api': Loader.QUILT,
-        'forge-api': Loader.FORGE,
-        'neoforge-api': Loader.NEOFORGE
-    ]
+    private static Map<String, Object> apis = ['fabric-api'  : Loader.FABRIC,
+                                               'quilt-api'   : Loader.QUILT,
+                                               'forge-api'   : Loader.FORGE,
+                                               'neoforge-api': Loader.NEOFORGE]
 
     private static void setupTargets(Project project) {
         def commonApiSet = project.configurations.named('implementation').get().dependencies.findAll {
@@ -76,7 +72,16 @@ class UniversalPlugin implements Plugin<Project> {
 
         def commonApi = commonApiSet.iterator().next()
 
-        def universalTargets = project.configurations.named('universalTarget').get().dependencies.toList()
+        def extension = project.extensions.getByType(UniversalExtension.class)
+
+        def configuration = project.configurations.maybeCreate('universalTarget')
+
+        extension.targets.get().forEach { minecraft, apis ->
+            apis.forEach { api -> configuration.dependencies.add(project.dependencies.create("dev.huskuraft.universal:${api}:${minecraft.last()}"))
+            }
+        }
+
+        def universalTargets = configuration.dependencies.toList()
 
         if (universalTargets.isEmpty()) {
             throw new IllegalStateException("No universal targets found in universalTarget")
@@ -96,54 +101,64 @@ class UniversalPlugin implements Plugin<Project> {
     }
 
 
-
     private static void checkProperties(Project project) {
-        [
-            'mod_id',
-            'mod_name',
-            'mod_license',
-            'mod_version',
-            'mod_environment',
-            'mod_group_id',
-            'mod_authors',
-            'mod_description',
-            'mod_display_url',
-            'mod_sources_url',
-            'mod_issues_url',
-        ].forEach {
-            if (project.properties.get(it) == null) {
-                throw new IllegalStateException("'${it}' not found in properties")
-            }
+        def extension = project.extensions.getByType(UniversalExtension.class)
+
+        ['mod.id'         : extension.id,
+         'mod.name'       : extension.name,
+         'mod.license'    : extension.license,
+         'mod.environment': extension.environment,
+         'mod.description': extension.description,].forEach { property, value ->
+            if (!value.present) value.set(project.properties.get(property) as String)
+            if (!value.present) throw new IllegalStateException("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration not found ")
         }
-        [
-            'mod_modrinth_id',
-        ].forEach {
-            if (project.properties.get(it) == null) {
-                project.logger.warn("'${it}' not found in properties, skipping modrinth upload")
-            }
+
+        if (!Environment.values().collectEntries { [it.name().toLowerCase(), it] }.containsKey(extension.environment.get())) {
+            def property = 'mod.environment'
+            throw new IllegalStateException("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration should be one of ${Environment.values().collect { it.name().toLowerCase() }.join(", ")}")
         }
-        [
-            'mod_curseforge_id',
-        ].forEach {
-            if (project.properties.get(it) == null) {
-                project.logger.warn("'${it}' not found in properties, skipping curseforge upload")
-            }
+
+        ['mod.primaryUrl': extension.primaryUrl,
+         'mod.sourcesUrl': extension.sourcesUrl,
+         'mod.supportUrl': extension.supportUrl,].forEach { property, value ->
+            if (!value.present) value.set(new URI(project.properties.get(property) as String))
+            if (!value.present) throw new IllegalStateException("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration not found ")
         }
+
+        ['mod.authors': extension.authors,].forEach { property, value ->
+            if (!value.present) value.set((project.properties.get(property) as String).split(",").toList())
+            if (!value.present) throw new IllegalStateException("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration not found ")
+        }
+
+        ['mod.modrinth.id'   : extension.modrinth.id,
+         'mod.modrinth.token': extension.modrinth.token,].forEach { property, value ->
+            if (!value.present) value.set(project.properties.get(property) as String)
+            if (!value.present) project.logger.warn("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration not found, skipping modrinth publication")
+        }
+
+        ['mod.curseforge.id'   : extension.curseforge.id,
+         'mod.curseforge.token': extension.curseforge.token,].forEach { property, value ->
+            if (!value.present) value.set(project.properties.get(property) as String)
+            if (!value.present) project.logger.warn("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration not found, skipping curseforge publication")
+        }
+
+        extension.group.set(project.group as String)
+        extension.version.set(project.version as String)
+
     }
 
     private static void registerTasks(Project project) {
-        def shadowJarTarget = SHADOW_JAR_TARGET_TASK
+        def shadowJarTarget = SHADOW_JAR_MINECRAFT_TASK
         def shadowJar = SHADOW_JAR_TASK
-        def transformJarTarget = TRANSFORM_JAR_TARGET_TASK
+        def transformJarTarget = TRANSFORM_JAR_MINECRAFT_TASK
         def transformJar = TRANSFORM_JAR_TASK
 
         project.tasks.register(transformJarTarget, task -> {
             task.dependsOn(shadowJarTarget)
-            task.group = 'transform'
+            task.group = 'universal'
         })
 
         project.tasks.register(shadowJarTarget, ShadowJar.class, task -> {
-            task.group = 'shadow'
         })
 
         project.tasks.named(shadowJar, ShadowJar.class, task -> {
@@ -162,18 +177,18 @@ class UniversalPlugin implements Plugin<Project> {
     }
 
     private static void setupTarget(Project project, Minecraft minecraft, String api, String apiVersion) {
-        def shadowJarTarget = SHADOW_JAR_TARGET_TASK
-        def transformJarTarget = TRANSFORM_JAR_TARGET_TASK
+        def shadowJarTarget = SHADOW_JAR_MINECRAFT_TASK
+        def transformJarTarget = TRANSFORM_JAR_MINECRAFT_TASK
 
         def minecraftId = minecraft.id
-        def dataVersion = minecraft.dataVersion
+        def targetName = minecraft.id.replace("-", "").replace(".", "").toUpperCase()
 
-        def configuration = "minecraft" + dataVersion + "CompileOnly"
+        def configuration = "minecraft" + targetName + "CompileOnly"
         def apiDep = "dev.huskuraft.universal:common-api:${apiVersion}"
-        def targetDep = "dev.huskuraft.universal:${api}:${apiVersion}:v${dataVersion}" as String
+        def targetDep = "dev.huskuraft.universal:${api}:${apiVersion}:${minecraftId}" as String
 
-        def shadowJarTargetVersionCode = shadowJarTarget + dataVersion
-        def transformJarTargetVersionCode = transformJarTarget + dataVersion
+        def shadowJarTargetVersionCode = shadowJarTarget + targetName
+        def transformJarTargetVersionCode = transformJarTarget + targetName
 
         def conf = project.configurations.maybeCreate(configuration)
         conf.canBeResolved = true
@@ -201,11 +216,13 @@ class UniversalPlugin implements Plugin<Project> {
         def transformJarTargetTask = project.tasks.maybeCreate(transformJarTargetVersionCode, JarModificationTask.class)
         if (transformJarTargetTaskNotCreated) {
             transformJarTargetTask.dependsOn(shadowJarTargetVersionCode)
-            transformJarTargetTask.group = 'transform'
+            transformJarTargetTask.group = 'universal'
             transformJarTargetTask.inputFile = shadowJarTargetTask.archiveFile
             transformJarTargetTask.outputFile = shadowJarTargetTask.archiveFile
         }
-        def mod = createMod(project)
+
+        def extension = project.extensions.getByType(UniversalExtension.class)
+        def mod = createMod(extension)
         switch (apis[api]) {
             case Loader.FABRIC:
                 transformJarTargetTask.modification(new FabricModJsonPropertyModification(mod))
@@ -234,29 +251,67 @@ class UniversalPlugin implements Plugin<Project> {
 
         }
 
-        project.tasks.named(shadowJarTarget,task -> task.dependsOn(shadowJarTargetVersionCode))
+        project.tasks.named(shadowJarTarget, task -> task.dependsOn(shadowJarTargetVersionCode))
         project.tasks.named(transformJarTarget, task -> task.dependsOn(transformJarTargetVersionCode))
 
         project.tasks.named("jar", task -> task.setEnabled(false))
     }
 
+    private static void setupReleases(Project project) {
 
-    static Mod createMod(Project project) {
-        return new Mod(
-            project.properties.mod_id.toString(),
-            project.properties.mod_name.toString(),
-            project.properties.mod_license.toString(),
-            project.properties.mod_version.toString(),
-            Environment.valueOf(project.properties.mod_environment.toString().toUpperCase()),
-            project.properties.mod_group_id.toString(),
-            project.properties.mod_authors.toString().split(",").toList(),
-            project.properties.mod_description.toString(),
-            project.properties.mod_display_url.toString(),
-            project.properties.mod_sources_url.toString(),
-            project.properties.mod_issues_url.toString(),
-            project.properties.mod_curseforge_id.toString(),
-            project.properties.mod_modrinth_id.toString(),
-        )
+        def extension = project.extensions.getByType(UniversalExtension.class)
+        project.pluginManager.apply(ModPublishPlugin.class)
+        def publishExtension = project.extensions.getByType(ModPublishingExtension.class)
+        publishExtension.publications {
+            it.register('release') { publication ->
+                publication.changelog {
+//                        it.from file('CHANGELOG.md')
+                }
+                publication.artifacts {
+                    extension.targets.get().forEach { minecraft, loaders ->
+                        it.register(minecraft.first()) { artifact ->
+                            artifact.minecraft.set(minecraft)
+                            artifact.loaders.set(loaders)
+                            artifact.relations {
+
+                            }
+                            def targetName = minecraft.last.replace("-", "").replace(".", "").toUpperCase()
+                            def transformJarTarget = TRANSFORM_JAR_MINECRAFT_TASK
+                            def transformJarTargetVersionCode = transformJarTarget + targetName
+                            artifact.from(project.tasks.named(transformJarTargetVersionCode, JarModificationTask.class).get().outputFile)
+                        }
+                    }
+
+                }
+            }
+        }
+
+        publishExtension.repositories {
+            it.curseforge {
+                it.authToken.set(extension.curseforge.token)
+                it.projectId.set(extension.curseforge.id)
+            }
+            it.modrinth {
+                it.authToken.set(extension.modrinth.token)
+                it.projectId.set(extension.modrinth.id)
+            }
+        }
     }
+
+    static Mod createMod(UniversalExtension extension) {
+        return new Mod(
+            extension.id.get(),
+            extension.name.get(),
+            extension.description.get(),
+            extension.authors.get(),
+            extension.license.get(),
+            Environment.values().collectEntries { [it.name().toLowerCase(), it] }.get(extension.environment.get()) as Environment,
+            extension.group.get(),
+            extension.version.get(),
+            extension.primaryUrl.get(),
+            extension.sourcesUrl.get(),
+            extension.supportUrl.get(),)
+    }
+
 
 }

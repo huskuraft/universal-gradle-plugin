@@ -47,9 +47,9 @@ public class FabricModJsonPropertyModification extends JsonModification {
 
         // Update contact information
         var contactObject = jsonObject.get("contact").getAsJsonObject();
-        contactObject.addProperty("homepage", mod.getDisplayUrl());
-        contactObject.addProperty("issues", mod.getIssuesUrl());
-        contactObject.addProperty("sources", mod.getSourcesUrl());
+        contactObject.addProperty("homepage", mod.getPrimaryUrl().toString());
+        contactObject.addProperty("issues", mod.getSupportUrl().toString());
+        contactObject.addProperty("sources", mod.getSourcesUrl().toString());
         jsonObject.add("contact", contactObject);
 
         // Update license

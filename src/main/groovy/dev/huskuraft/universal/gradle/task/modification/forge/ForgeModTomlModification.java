@@ -41,7 +41,7 @@ public class ForgeModTomlModification extends PlainTextModification {
             if (line.trim().startsWith("license=")) {
                 line = "license=\"" + mod.getLicense() + "\"";
             } else if (line.trim().startsWith("issueTrackerURL=")) {
-                line = "issueTrackerURL=\"" + mod.getIssuesUrl() + "\"";
+                line = "issueTrackerURL=\"" + mod.getSupportUrl() + "\"";
             } else if (line.trim().startsWith("modId=\"universal\"")) {
                 line = "modId=\"" + mod.getId() + "\"";
             } else if (line.trim().startsWith("version=")) {
@@ -49,7 +49,7 @@ public class ForgeModTomlModification extends PlainTextModification {
             } else if (line.trim().startsWith("displayName=")) {
                 line = "displayName=\"" + mod.getName() + "\"";
             } else if (line.trim().startsWith("displayURL=")) {
-                line = "displayURL=\"" + mod.getDisplayUrl() + "\"";
+                line = "displayURL=\"" + mod.getPrimaryUrl() + "\"";
             } else if (line.trim().startsWith("logoFile=")) {
                 line = "logoFile=\"" + "assets/" + mod.getId() + "/icon.png" + "\"";
             } else if (line.trim().startsWith("authors=")) {

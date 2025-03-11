@@ -7,17 +7,13 @@ import org.gradle.api.Project
 class Mod {
     String id
     String name
+    String description
+    List<String> authors
     String license
-    String version
     Environment environment
     String groupId
-    List<String> authors
-    String description
-    String displayUrl
-    String sourcesUrl
-    String issuesUrl
-
-    String curseforgeId
-    String modrinthId
-
+    String version
+    URI primaryUrl
+    URI sourcesUrl
+    URI supportUrl
 }
