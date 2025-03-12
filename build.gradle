@@ -46,6 +46,8 @@ dependencies {
     implementation 'com.electronwill.night-config:json:3.6.7'
 
     implementation "dev.huskuraft.minecraft:mod-publish-gradle-plugin:0.1.0"
+
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-3.0'
 }
 
 publishing {
@@ -59,4 +61,8 @@ publishing {
             }
         }
     }
+}
+
+test {
+    useJUnitPlatform()
 }
