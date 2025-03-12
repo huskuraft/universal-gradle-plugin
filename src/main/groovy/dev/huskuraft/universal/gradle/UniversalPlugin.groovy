@@ -246,6 +246,12 @@ class UniversalPlugin implements Plugin<Project> {
             it.register('release') { publication ->
                 publication.modId.set(mod.id)
                 publication.modName.set(mod.name)
+//                def rel = switch (extractReleaseType(project.version as String)) {
+//                    case 'alpha' -> 'alpha'
+//                    case 'beta', 'rc', 'pre', 'dev', 'snapshot' -> 'beta'
+//                    default -> 'release'
+//                }
+//                publication.channel.set()
                 publication.changelog {
 //                        it.from file('CHANGELOG.md')
                 }
@@ -281,6 +287,21 @@ class UniversalPlugin implements Plugin<Project> {
 
     static String getTargetName(List<String> minecraft, List<String> apis) {
         return 'Minecraft' + minecraft.last.replace('.', '').replace('-', '').toUpperCase() + apis.collect { API_NAME_MAP[it] }.join('')
+    }
+
+    /**
+     * Extracts the release type (e.g., alpha, beta, rc) from a semantic version string.
+     *
+     * @param version The semantic version string (e.g., "1.0.0-alpha.1").
+     * @return The release type (e.g., "alpha"), or null if no release type is found.
+     */
+    static String extractReleaseType(String version) {
+        // Regex to match the release type in a semantic version string
+        def matcher = version =~ /(\d+\.\d+\.\d+)-(alpha|beta|rc|pre|dev|snapshot)\.?\d*/
+        if (matcher.find()) {
+            return matcher.group(2) // Return the release type (e.g., "alpha")
+        }
+        return null // No release type found
     }
 
     static Mod createMod(UniversalExtension extension) {
