@@ -10,8 +10,6 @@ import dev.huskuraft.universal.gradle.task.modification.forge.ForgeAnnotationMod
 import dev.huskuraft.universal.gradle.task.modification.forge.ForgeModTomlModification
 import dev.huskuraft.universal.gradle.task.modification.neoforge.NeoForgeAnnotationModification
 import dev.huskuraft.universal.gradle.task.modification.neoforge.NeoForgeModTomlModification
-import dev.huskuraft.universal.gradle.versioning.Minecraft
-import dev.huskuraft.universal.gradle.versioning.VersionResolver
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -32,21 +30,13 @@ class UniversalPlugin implements Plugin<Project> {
         project.pluginManager.apply(JavaLibraryPlugin.class)
         project.pluginManager.apply(ShadowPlugin.class)
 
-
-        def extension = project.extensions.create('universal', UniversalExtension.class)
-
-        project.configurations.create('universalTarget', { Configuration conf ->
-            conf.canBeResolved = true
-            conf.canBeConsumed = false
-        })
+        project.extensions.create('universal', UniversalExtension.class)
 
         project.afterEvaluate {
-            checkProperties(project)
-
-            project.group = project.properties.mod_group_id
-            project.version = project.properties.mod_version
+            setupProperties(project)
 
             registerTasks(project)
+
             setupTargets(project)
             setupReleases(project)
         }
@@ -54,10 +44,18 @@ class UniversalPlugin implements Plugin<Project> {
 
     }
 
-    private static Map<String, Object> apis = ['fabric-api'  : Loader.FABRIC,
-                                               'quilt-api'   : Loader.QUILT,
-                                               'forge-api'   : Loader.FORGE,
-                                               'neoforge-api': Loader.NEOFORGE]
+    private static Map<String, Object> API_MAP = ['fabric-api'  : Loader.FABRIC,
+                                                  'quilt-api'   : Loader.QUILT,
+                                                  'forge-api'   : Loader.FORGE,
+                                                  'neoforge-api': Loader.NEOFORGE]
+
+
+    private static Map<String, Object> API_NAME_MAP = [
+        'fabric-api'  : 'Fabric',
+        'quilt-api'   : 'Quilt',
+        'forge-api'   : 'Forge',
+        'neoforge-api': 'NeoForge'
+    ]
 
     private static void setupTargets(Project project) {
         def commonApiSet = project.configurations.named('implementation').get().dependencies.findAll {
@@ -74,34 +72,19 @@ class UniversalPlugin implements Plugin<Project> {
 
         def extension = project.extensions.getByType(UniversalExtension.class)
 
-        def configuration = project.configurations.maybeCreate('universalTarget')
+        if (extension.targets.get().isEmpty()) {
+            throw new IllegalStateException("No universal targets found in universal configuration")
+        }
 
         extension.targets.get().forEach { minecraft, apis ->
-            apis.forEach { api -> configuration.dependencies.add(project.dependencies.create("dev.huskuraft.universal:${api}:${minecraft.last()}"))
+            apis.forEach { api ->
+                setupTarget(project, getTargetName(minecraft, apis), minecraft.last, api, commonApi.version)
             }
-        }
-
-        def universalTargets = configuration.dependencies.toList()
-
-        if (universalTargets.isEmpty()) {
-            throw new IllegalStateException("No universal targets found in universalTarget")
-        }
-
-        universalTargets.forEach { targetApi ->
-            def minecraftVersion = VersionResolver.findById(targetApi.version)
-            if (targetApi.group != 'dev.huskuraft.universal' || !apis[targetApi.name] || minecraftVersion.isEmpty()) {
-                throw new IllegalStateException("Invalid universal target: ${targetApi.group}:${targetApi.name}:${targetApi.version}")
-            }
-
-            project.logger.info("Preparing universal target: ${targetApi.group}:${targetApi.name}:${targetApi.version}")
-
-            setupTarget(project, minecraftVersion.get(), targetApi.name, commonApi.version)
-
         }
     }
 
 
-    private static void checkProperties(Project project) {
+    private static void setupProperties(Project project) {
         def extension = project.extensions.getByType(UniversalExtension.class)
 
         ['mod.id'         : extension.id,
@@ -168,7 +151,6 @@ class UniversalPlugin implements Plugin<Project> {
             task.dependencyFilter.exclude(task.dependencyFilter.dependency("com.google.code.findbugs:jsr305"))
 
             task.relocate(API_GROUP, project.group.toString())
-//            task.relocate(NIGHT_CONFIG_GROUP, "${project.group.toString()}.api.nightconfig")
         })
 
         project.tasks.named("build", build -> {
@@ -176,19 +158,16 @@ class UniversalPlugin implements Plugin<Project> {
         })
     }
 
-    private static void setupTarget(Project project, Minecraft minecraft, String api, String apiVersion) {
-        def shadowJarTarget = SHADOW_JAR_MINECRAFT_TASK
-        def transformJarTarget = TRANSFORM_JAR_MINECRAFT_TASK
+    private static void setupTarget(Project project, String targetName, String minecraftId, String api, String apiVersion) {
+        def shadowJarMinecraft = SHADOW_JAR_MINECRAFT_TASK
+        def transformJarMinecraft = TRANSFORM_JAR_MINECRAFT_TASK
 
-        def minecraftId = minecraft.id
-        def targetName = minecraft.id.replace("-", "").replace(".", "").toUpperCase()
-
-        def configuration = "minecraft" + targetName + "CompileOnly"
+        def configuration = targetName.uncapitalize() + "CompileOnly"
         def apiDep = "dev.huskuraft.universal:common-api:${apiVersion}"
         def targetDep = "dev.huskuraft.universal:${api}:${apiVersion}:${minecraftId}" as String
 
-        def shadowJarTargetVersionCode = shadowJarTarget + targetName
-        def transformJarTargetVersionCode = transformJarTarget + targetName
+        def shadowJarMinecraftTarget = SHADOW_JAR_TASK + targetName
+        def transformJarMinecraftTarget = TRANSFORM_JAR_TASK + targetName
 
         def conf = project.configurations.maybeCreate(configuration)
         conf.canBeResolved = true
@@ -198,8 +177,8 @@ class UniversalPlugin implements Plugin<Project> {
         project.dependencies.add(configuration, "${apiDep}")
         project.dependencies.add(configuration, "${targetDep}")
 
-        def shadowJarTargetTaskNotCreated = project.tasks.findByName(shadowJarTargetVersionCode) != null
-        def shadowJarTargetTask = project.tasks.maybeCreate(shadowJarTargetVersionCode, ShadowJar.class)
+        def shadowJarTargetTaskNotCreated = project.tasks.findByName(shadowJarMinecraftTarget) != null
+        def shadowJarTargetTask = project.tasks.maybeCreate(shadowJarMinecraftTarget, ShadowJar.class)
         if (shadowJarTargetTaskNotCreated) {
             shadowJarTargetTask.group = "shadow"
             shadowJarTargetTask.archiveAppendix.set(minecraftId)
@@ -212,10 +191,10 @@ class UniversalPlugin implements Plugin<Project> {
         shadowJarTargetTask.dependencyFilter.include(shadowJarTargetTask.dependencyFilter.dependency(apiDep))
         shadowJarTargetTask.dependencyFilter.include(shadowJarTargetTask.dependencyFilter.dependency(targetDep))
 
-        def transformJarTargetTaskNotCreated = project.tasks.findByName(transformJarTargetVersionCode) != null
-        def transformJarTargetTask = project.tasks.maybeCreate(transformJarTargetVersionCode, JarModificationTask.class)
+        def transformJarTargetTaskNotCreated = project.tasks.findByName(transformJarMinecraftTarget) != null
+        def transformJarTargetTask = project.tasks.maybeCreate(transformJarMinecraftTarget, JarModificationTask.class)
         if (transformJarTargetTaskNotCreated) {
-            transformJarTargetTask.dependsOn(shadowJarTargetVersionCode)
+            transformJarTargetTask.dependsOn(shadowJarMinecraftTarget)
             transformJarTargetTask.group = 'universal'
             transformJarTargetTask.inputFile = shadowJarTargetTask.archiveFile
             transformJarTargetTask.outputFile = shadowJarTargetTask.archiveFile
@@ -223,7 +202,7 @@ class UniversalPlugin implements Plugin<Project> {
 
         def extension = project.extensions.getByType(UniversalExtension.class)
         def mod = createMod(extension)
-        switch (apis[api]) {
+        switch (API_MAP[api]) {
             case Loader.FABRIC:
                 transformJarTargetTask.modification(new FabricModJsonPropertyModification(mod))
 
@@ -251,8 +230,8 @@ class UniversalPlugin implements Plugin<Project> {
 
         }
 
-        project.tasks.named(shadowJarTarget, task -> task.dependsOn(shadowJarTargetVersionCode))
-        project.tasks.named(transformJarTarget, task -> task.dependsOn(transformJarTargetVersionCode))
+        project.tasks.named(shadowJarMinecraft, task -> task.dependsOn(shadowJarMinecraftTarget))
+        project.tasks.named(transformJarMinecraft, task -> task.dependsOn(transformJarMinecraftTarget))
 
         project.tasks.named("jar", task -> task.setEnabled(false))
     }
@@ -260,10 +239,13 @@ class UniversalPlugin implements Plugin<Project> {
     private static void setupReleases(Project project) {
 
         def extension = project.extensions.getByType(UniversalExtension.class)
+        def mod = createMod(extension)
         project.pluginManager.apply(ModPublishPlugin.class)
         def publishExtension = project.extensions.getByType(ModPublishingExtension.class)
         publishExtension.publications {
             it.register('release') { publication ->
+                publication.modId.set(mod.id)
+                publication.modName.set(mod.name)
                 publication.changelog {
 //                        it.from file('CHANGELOG.md')
                 }
@@ -276,9 +258,8 @@ class UniversalPlugin implements Plugin<Project> {
 
                             }
                             def targetName = minecraft.last.replace("-", "").replace(".", "").toUpperCase()
-                            def transformJarTarget = TRANSFORM_JAR_MINECRAFT_TASK
-                            def transformJarTargetVersionCode = transformJarTarget + targetName
-                            artifact.from(project.tasks.named(transformJarTargetVersionCode, JarModificationTask.class).get().outputFile)
+                            def transformJarMinecraftTarget = SHADOW_JAR_TASK + targetName
+                            artifact.from(project.tasks.named(transformJarMinecraftTarget, JarModificationTask.class).get().outputFile)
                         }
                     }
 
@@ -296,6 +277,10 @@ class UniversalPlugin implements Plugin<Project> {
                 it.projectId.set(extension.modrinth.id)
             }
         }
+    }
+
+    static String getTargetName(List<String> minecraft, List<String> apis) {
+        return 'Minecraft' + minecraft.last.replace('.', '').replace('-', '').toUpperCase() + apis.collect { API_NAME_MAP[it] }.join('')
     }
 
     static Mod createMod(UniversalExtension extension) {
