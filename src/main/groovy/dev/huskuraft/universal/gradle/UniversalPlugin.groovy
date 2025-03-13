@@ -4,6 +4,7 @@ import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dev.huskuraft.minecraft.gradle.publish.ModPublishPlugin
 import dev.huskuraft.minecraft.gradle.publish.ModPublishingExtension
+import dev.huskuraft.minecraft.gradle.publish.Release
 import dev.huskuraft.universal.gradle.task.JarModificationTask
 import dev.huskuraft.universal.gradle.task.modification.fabric.*
 import dev.huskuraft.universal.gradle.task.modification.forge.ForgeAnnotationModification
@@ -12,7 +13,6 @@ import dev.huskuraft.universal.gradle.task.modification.neoforge.NeoForgeAnnotat
 import dev.huskuraft.universal.gradle.task.modification.neoforge.NeoForgeModTomlModification
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPluginExtension
 
@@ -23,8 +23,8 @@ class UniversalPlugin implements Plugin<Project> {
     static String SHADOW_JAR_TASK = "shadowJar"
     static String TRANSFORM_JAR_TASK = "transformJar"
 
-    static String SHADOW_JAR_MINECRAFT_TASK = "shadowJarMinecraft"
-    static String TRANSFORM_JAR_MINECRAFT_TASK = "transformJarMinecraft"
+    static String SHADOW_JAR_MINECRAFT_TASK = "shadowModJar"
+    static String TRANSFORM_JAR_MINECRAFT_TASK = "transformModJar"
 
     void apply(Project project) {
         project.pluginManager.apply(JavaLibraryPlugin.class)
@@ -37,8 +37,8 @@ class UniversalPlugin implements Plugin<Project> {
 
             registerTasks(project)
 
-            setupTargets(project)
             setupReleases(project)
+            setupTargets(project)
         }
 
 
@@ -50,12 +50,10 @@ class UniversalPlugin implements Plugin<Project> {
                                                   'neoforge-api': Loader.NEOFORGE]
 
 
-    private static Map<String, Object> API_NAME_MAP = [
-        'fabric-api'  : 'Fabric',
-        'quilt-api'   : 'Quilt',
-        'forge-api'   : 'Forge',
-        'neoforge-api': 'NeoForge'
-    ]
+    private static Map<String, Object> API_NAME_MAP = ['fabric-api'  : 'Fabric',
+                                                       'quilt-api'   : 'Quilt',
+                                                       'forge-api'   : 'Forge',
+                                                       'neoforge-api': 'NeoForge']
 
     private static void setupTargets(Project project) {
         def commonApiSet = project.configurations.named('implementation').get().dependencies.findAll {
@@ -138,7 +136,7 @@ class UniversalPlugin implements Plugin<Project> {
 
         project.tasks.register(transformJarTarget, task -> {
             task.dependsOn(shadowJarTarget)
-            task.group = 'universal'
+            task.group = 'build'
         })
 
         project.tasks.register(shadowJarTarget, ShadowJar.class, task -> {
@@ -166,8 +164,8 @@ class UniversalPlugin implements Plugin<Project> {
         def apiDep = "dev.huskuraft.universal:common-api:${apiVersion}"
         def targetDep = "dev.huskuraft.universal:${api}:${apiVersion}:${minecraftId}" as String
 
-        def shadowJarMinecraftTarget = SHADOW_JAR_TASK + targetName
-        def transformJarMinecraftTarget = TRANSFORM_JAR_TASK + targetName
+        def shadowJarMinecraftTarget = "shadow" + targetName + "ModJar"
+        def transformJarMinecraftTarget = "transform" + targetName + "ModJar"
 
         def conf = project.configurations.maybeCreate(configuration)
         conf.canBeResolved = true
@@ -180,7 +178,7 @@ class UniversalPlugin implements Plugin<Project> {
         def shadowJarTargetTaskNotCreated = project.tasks.findByName(shadowJarMinecraftTarget) != null
         def shadowJarTargetTask = project.tasks.maybeCreate(shadowJarMinecraftTarget, ShadowJar.class)
         if (shadowJarTargetTaskNotCreated) {
-            shadowJarTargetTask.group = "shadow"
+            shadowJarTargetTask.group = 'shadow'
             shadowJarTargetTask.archiveAppendix.set(minecraftId)
             shadowJarTargetTask.from(project.extensions.getByType(JavaPluginExtension).sourceSets.main.output)
             shadowJarTargetTask.configurations = [project.configurations.named(configuration).get()]
@@ -195,7 +193,7 @@ class UniversalPlugin implements Plugin<Project> {
         def transformJarTargetTask = project.tasks.maybeCreate(transformJarMinecraftTarget, JarModificationTask.class)
         if (transformJarTargetTaskNotCreated) {
             transformJarTargetTask.dependsOn(shadowJarMinecraftTarget)
-            transformJarTargetTask.group = 'universal'
+            transformJarTargetTask.group = 'build'
             transformJarTargetTask.inputFile = shadowJarTargetTask.archiveFile
             transformJarTargetTask.outputFile = shadowJarTargetTask.archiveFile
         }
@@ -237,38 +235,49 @@ class UniversalPlugin implements Plugin<Project> {
     }
 
     private static void setupReleases(Project project) {
+        project.pluginManager.apply(ModPublishPlugin.class)
 
         def extension = project.extensions.getByType(UniversalExtension.class)
-        def mod = createMod(extension)
-        project.pluginManager.apply(ModPublishPlugin.class)
         def publishExtension = project.extensions.getByType(ModPublishingExtension.class)
+
+        def mod = createMod(extension)
+
         publishExtension.publications {
             it.register('release') { publication ->
                 publication.modId.set(mod.id)
                 publication.modName.set(mod.name)
-//                def rel = switch (extractReleaseType(project.version as String)) {
-//                    case 'alpha' -> 'alpha'
-//                    case 'beta', 'rc', 'pre', 'dev', 'snapshot' -> 'beta'
-//                    default -> 'release'
-//                }
-//                publication.channel.set()
-                publication.changelog {
-//                        it.from file('CHANGELOG.md')
+                def releaseType = extractReleaseType(project.version as String)
+                switch (releaseType) {
+                    case 'dev':
+                    case 'snapshot':
+                    case 'alpha':
+                        publication.channel.set(Release.ALPHA)
+                        break
+                    case 'rc':
+                    case 'pre':
+                    case 'beta':
+                        publication.channel.set(Release.BETA)
+                        break
+                    default:
+                        publication.channel.set(Release.RELEASE)
+                        break
                 }
                 publication.artifacts {
-                    extension.targets.get().forEach { minecraft, loaders ->
-                        it.register(minecraft.first()) { artifact ->
+                    extension.targets.get().forEach { minecraft, apis ->
+                        def targetName = getTargetName(minecraft, apis)
+                        it.register('artifact' + targetName) { artifact ->
+                            artifact.title.set("${mod.name} ${mod.version}")
                             artifact.minecraft.set(minecraft)
-                            artifact.loaders.set(loaders)
+                            artifact.loaders.set(apis.collect { it.replace('-api', '') })
                             artifact.relations {
-
                             }
-                            def targetName = minecraft.last.replace("-", "").replace(".", "").toUpperCase()
-                            def transformJarMinecraftTarget = SHADOW_JAR_TASK + targetName
-                            artifact.from(project.tasks.named(transformJarMinecraftTarget, JarModificationTask.class).get().outputFile)
+                            def transformJarMinecraftTarget = "transform" + targetName + "ModJar"
+                            artifact.from(project.tasks.named(transformJarMinecraftTarget, JarModificationTask.class))
                         }
                     }
-
+                }
+                publication.changelog {
+//                        it.from file('CHANGELOG.md')
                 }
             }
         }
@@ -286,7 +295,7 @@ class UniversalPlugin implements Plugin<Project> {
     }
 
     static String getTargetName(List<String> minecraft, List<String> apis) {
-        return 'Minecraft' + minecraft.last.replace('.', '').replace('-', '').toUpperCase() + apis.collect { API_NAME_MAP[it] }.join('')
+        return minecraft.last.replace('.', '').replace('-', '').toUpperCase() + apis.collect { API_NAME_MAP[it] }.join('')
     }
 
     /**
