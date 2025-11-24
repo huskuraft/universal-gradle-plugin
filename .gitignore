@@ -3,6 +3,7 @@
 build/
 out/
 classes/
+bin/
 local.properties
 
 # IntelliJ IDEA

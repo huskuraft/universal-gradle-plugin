@@ -12,34 +12,44 @@ class Minecraft {
     @SerializedName("name")
     String name
 
-    @SerializedName("release_target")
-    String releaseTarget
-
     @SerializedName("type")
     String type
 
-    @SerializedName("stable")
-    boolean stable
+    @SerializedName("url")
+    String url
 
-    @SerializedName("data_version")
-    int dataVersion
+    @SerializedName("time")
+    String time
 
-    @SerializedName("protocol_version")
-    long protocolVersion
-
-    @SerializedName("data_pack_version")
-    int dataPackVersion
-
-    @SerializedName("resource_pack_version")
-    int resourcePackVersion
-
-    @SerializedName("build_time")
-    String buildTime
-
-    @SerializedName("release_time")
+    @SerializedName("releaseTime")
     String releaseTime
 
     @SerializedName("sha1")
     String sha1
+
+    // Extended properties from version.json inside JAR
+    @SerializedName("release_target")
+    String releaseTarget
+
+    @SerializedName("stable")
+    Boolean stable
+
+    @SerializedName("data_version")
+    Integer dataVersion
+
+    @SerializedName("protocol_version")
+    Long protocolVersion
+
+    @SerializedName("data_pack_version")
+    Integer dataPackVersion
+
+    @SerializedName("resource_pack_version")
+    Integer resourcePackVersion
+
+    @SerializedName("build_time")
+    String buildTime
+
+    @SerializedName("compliance_level")
+    Integer complianceLevel
 
 }

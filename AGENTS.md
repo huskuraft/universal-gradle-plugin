@@ -249,14 +249,28 @@ Similar to Forge but adapted for NeoForge's API:
 ### 7. Version Management
 
 **VersionResolver** (`versioning/VersionResolver.groovy`):
-- Loads Minecraft version metadata from `data.json`
-- Provides lookup functionality for version information
-- Contains comprehensive data about protocol versions, data pack versions, etc.
+- Fetches Minecraft version metadata from Mojang's official API (`https://launchermeta.mojang.com/mc/game/version_manifest.json`)
+- Provides lookup functionality for version information by version ID
+- Implements intelligent caching to minimize network requests:
+  - Caches version manifest in `~/.gradle/caches/universal-gradle-plugin/`
+  - Cache is valid for 24 hours before refreshing
+  - Falls back to cached data if network is unavailable
+- Three-tier fallback system:
+  1. **Primary**: Fetch from Mojang's API (always fresh data)
+  2. **Secondary**: Load from local Gradle cache (offline support)
+  3. **Tertiary**: Load from bundled `data.json` (last resort fallback)
+- Graceful error handling ensures builds don't fail due to network issues
 
-**Data File** (`resources/data.json`):
-- Comprehensive list of all Minecraft versions
-- Includes snapshots, pre-releases, and release versions
-- Contains version-specific metadata needed for compatibility
+**Version Data Sources**:
+- **Mojang API** (Primary): Always up-to-date with latest Minecraft versions and snapshots
+- **Local Cache** (Secondary): Enables offline builds after first successful fetch
+- **Bundled data.json** (Tertiary): Fallback for complete network failures
+
+**Key Features**:
+- Automatic detection of new Minecraft versions
+- Support for releases, snapshots, pre-releases, and release candidates
+- Thread-safe singleton pattern with lazy initialization
+- Configurable cache duration (default: 24 hours)
 
 ### 8. Publishing Integration
 
