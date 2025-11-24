@@ -76,7 +76,7 @@ class UniversalPlugin implements Plugin<Project> {
 
         extension.targets.get().forEach { minecraft, apis ->
             apis.forEach { api ->
-                setupTarget(project, getTargetName(minecraft, apis), minecraft.last, api, commonApi.version)
+                setupTarget(project, getTargetName(minecraft, apis), minecraft.first, api, commonApi.version)
             }
         }
     }
