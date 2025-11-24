@@ -26,8 +26,11 @@ gradlePlugin {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
+    maven {
+        name = 'Huskuraft'
+        url = 'https://repo.huskuraft.dev/releases/'
+    }
 }
 
 dependencies {
