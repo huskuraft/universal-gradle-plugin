@@ -2,6 +2,7 @@ package dev.huskuraft.universal.gradle
 
 import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import dev.huskuraft.minecraft.gradle.publish.ChangelogFormat
 import dev.huskuraft.minecraft.gradle.publish.ModPublishPlugin
 import dev.huskuraft.minecraft.gradle.publish.ModPublishingExtension
 import dev.huskuraft.minecraft.gradle.publish.Release
@@ -109,6 +110,24 @@ class UniversalPlugin implements Plugin<Project> {
         ['mod.authors': extension.authors,].forEach { property, value ->
             if (!value.present) value.set((project.properties.get(property) as String).split(",").toList())
             if (!value.present) throw new IllegalStateException("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration not found ")
+        }
+
+        ['mod.changelog': extension.changelog,].forEach { property, value ->
+            if (!value.present && project.properties.containsKey(property)) {
+                value.set(project.properties.get(property) as String)
+            }
+            if (!value.present) {
+                value.set("")
+            }
+        }
+
+        ['mod.changelogFormat': extension.changelogFormat,].forEach { property, value ->
+            if (!value.present && project.properties.containsKey(property)) {
+                value.set(project.properties.get(property) as String)
+            }
+            if (!value.present) {
+                value.set("markdown") // Default to markdown
+            }
         }
 
         ['mod.modrinth.id'   : extension.modrinth.id,
@@ -277,7 +296,8 @@ class UniversalPlugin implements Plugin<Project> {
                     }
                 }
                 publication.changelog {
-//                        it.from file('CHANGELOG.md')
+                    it.format.set(parseChangelogFormat(extension.changelogFormat.get()))
+                    it.content.set(extension.changelog.get())
                 }
             }
         }
@@ -326,6 +346,21 @@ class UniversalPlugin implements Plugin<Project> {
             extension.primaryUrl.get(),
             extension.sourcesUrl.get(),
             extension.supportUrl.get(),)
+    }
+
+    static ChangelogFormat parseChangelogFormat(String format) {
+        switch (format?.toLowerCase()) {
+            case 'html':
+                return ChangelogFormat.HTML
+            case 'markdown':
+            case 'md':
+                return ChangelogFormat.MARKDOWN
+            case 'text':
+            case 'txt':
+                return ChangelogFormat.TEXT
+            default:
+                return ChangelogFormat.MARKDOWN // Default to markdown
+        }
     }
 
 

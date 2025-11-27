@@ -54,6 +54,12 @@ abstract class UniversalExtension {
     @Input
     abstract Property<URI> getSupportUrl()
 
+    @Input
+    abstract Property<String> getChangelog()
+
+    @Input
+    abstract Property<String> getChangelogFormat()
+
     @Nested
     abstract Modrinth getModrinth()
 
