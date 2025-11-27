@@ -108,8 +108,12 @@ class UniversalPlugin implements Plugin<Project> {
         }
 
         ['mod.authors': extension.authors,].forEach { property, value ->
-            if (!value.present) value.set((project.properties.get(property) as String).split(",").toList())
-            if (!value.present) throw new IllegalStateException("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration not found ")
+            if (!value.present || value.get().isEmpty()) {
+                def authorsString = project.properties.get(property) as String
+                def authorsList = authorsString.split(",").collect { it.trim() }.findAll { !it.isEmpty() }
+                value.set(authorsList)
+            }
+            if (!value.present || value.get().isEmpty()) throw new IllegalStateException("'${property}' in properties or '${property.replace("mod.", "")}' in universal configuration not found ")
         }
 
         ['mod.changelog': extension.changelog,].forEach { property, value ->
