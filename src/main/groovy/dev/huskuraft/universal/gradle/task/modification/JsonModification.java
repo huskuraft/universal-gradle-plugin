@@ -46,7 +46,7 @@ public abstract class JsonModification implements Modification {
         // Write the modified JSON to the output stream
         try (var outputStream = new ByteArrayOutputStream();
              var writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
-            var gson = new GsonBuilder().setPrettyPrinting().create();
+            var gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
             gson.toJson(jsonObject, writer);
             writer.flush();
             return outputStream.toByteArray();

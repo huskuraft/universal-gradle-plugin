@@ -1,6 +1,7 @@
 package dev.huskuraft.universal.gradle.versioning
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 
 import java.nio.file.Files
@@ -21,7 +22,7 @@ import java.time.Instant
 class VersionResolver {
 
     private static final String MANIFEST_URL = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
-    private static final Gson gson = new Gson()
+    private static final Gson gson = new GsonBuilder().disableHtmlEscaping().create()
     private static final Duration CACHE_DURATION = Duration.ofHours(24)
     private static final Path cacheDir = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "universal-gradle-plugin")
     private static final Path manifestCache = cacheDir.resolve("version_manifest.json")

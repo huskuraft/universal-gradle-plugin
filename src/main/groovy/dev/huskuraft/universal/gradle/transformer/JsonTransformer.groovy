@@ -13,7 +13,7 @@ import org.gradle.api.tasks.Optional
 
 @CacheableTransformer
 class JsonTransformer implements Transformer {
-    static final GSON = new Gson()
+    static final GSON = new GsonBuilder().disableHtmlEscaping().create()
     static final LOGGER = Logging.getLogger(JsonTransformer.class)
 
     @Optional
