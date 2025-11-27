@@ -55,6 +55,9 @@ public class FabricModJsonPropertyModification extends JsonModification {
         // Update license
         jsonObject.addProperty("license", mod.getLicense());
 
+        // Update icon
+        jsonObject.addProperty("icon", "assets/" + mod.getId() + "/icon.png");
+
         // Update environment
         switch (mod.getEnvironment()) {
             case BOTH:
